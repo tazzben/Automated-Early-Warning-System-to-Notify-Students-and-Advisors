@@ -40,7 +40,7 @@ For help, please contact Ben Smith <bosmith@unomaha.edu>.
 var extractDataFromCanvas = {};
 extractDataFromCanvas.developerKey = "";
 extractDataFromCanvas.canvasAPI = "";
-extractDataFromCanvas.danagerSpreadsheet = "";
+extractDataFromCanvas.dangerSpreadsheet = "";
 extractDataFromCanvas.courseList = "";
 extractDataFromCanvas.domain = "";
 extractDataFromCanvas.threshold = 100.0;
@@ -51,7 +51,7 @@ extractDataFromCanvas.loadSettings = function () {
     var scriptProperties = PropertiesService.getScriptProperties();
     extractDataFromCanvas.developerKey = "Bearer " + scriptProperties.getProperty('DEVELOPER_KEY');
     extractDataFromCanvas.canvasAPI = scriptProperties.getProperty('CANVAS_API');
-    extractDataFromCanvas.danagerSpreadsheet = scriptProperties.getProperty('DANGER_SHEET');
+    extractDataFromCanvas.dangerSpreadsheet = scriptProperties.getProperty('DANGER_SHEET');
     extractDataFromCanvas.courseList = scriptProperties.getProperty('COURSE_LIST');
     extractDataFromCanvas.domain = scriptProperties.getProperty('DOMAIN');
     createContent.message = scriptProperties.getProperty('MESSAGE_HEADER');
@@ -161,15 +161,15 @@ var updateSpreadsheetReport = {};
 
 updateSpreadsheetReport.createSpreadsheet = function () {
     var header = [
-        ['Student', 'Course', 'E-Mail', 'Current Score', 'Current Grade']
+        ['Date','Student', 'Course', 'E-Mail', 'Current Score', 'Current Grade']
     ];
-    var cDate = JSON.stringify(new Date());
-    var ss = SpreadsheetApp.openByUrl(extractDataFromCanvas.danagerSpreadsheet);
+    var ss = SpreadsheetApp.openByUrl(extractDataFromCanvas.dangerSpreadsheet);
     if (ss !== false) {
-        var sheet = ss.insertSheet("Report - " + cDate, 0);
+        var sheet = ss.getActiveSheet();
         sheet.activate();
-        var headerRange = sheet.getRange(1, 1, 1, header[0].length);
-        headerRange.setValues(header);
+        if (sheet.getLastRow() === 0) {
+            sheet.getRange(1, 1, 1, header[0].length).setValues(header);
+        }
         return sheet;
     }
     return ss;
@@ -194,7 +194,11 @@ createContent.subject = "";
 createContent.createMessages = function (data) {
     var sheet = updateSpreadsheetReport.createSpreadsheet();
     var contentToWrite = [];
-
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0');
+    var yyyy = today.getFullYear();
+    var formattedDate = mm + '/' + dd + '/' + yyyy;
     for (var i = 0; i < data.length; i++) {
         // Based on Enrollments API
 
@@ -219,7 +223,7 @@ createContent.createMessages = function (data) {
                     var message = message + "\r\n\r\n" + loadCourseList.couseDes[mesPos];
                 }
                 if (score <= extractDataFromCanvas.threshold) {
-                    var content = [name, data[i].sis_course_id.toString(), email, score, cgrade];
+                    var content = [formattedDate, name, data[i].sis_course_id.toString(), email, score, cgrade];
                     contentToWrite.push(content);
                 }
                 var emailSubject = createContent.subject + " - " + course;
