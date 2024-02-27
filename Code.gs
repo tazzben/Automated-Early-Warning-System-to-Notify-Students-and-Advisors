@@ -80,7 +80,7 @@ extractDataFromCanvas.findCourses = function (data) {
         if (data[i].course_code && data[i].enrollment_term_id) {
             var course = data[i].course_code.toString().substr(0, 8);
             var termid = data[i].enrollment_term_id;
-            if (loadCourseList.couseList.indexOf(course) > -1 && termid == extractDataFromCanvas.term) {
+            if (loadCourseList.couseList.indexOf(course) > -1) {
                 courseURLS.push({
                     course: course,
                     id: data[i].id
