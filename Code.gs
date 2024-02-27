@@ -1,7 +1,7 @@
 /*
 Google Apps Script to Extract Current Scores and Notify Students and Advisors
 
-This script uses the Canvas API to extract the current scores from a list of courses (defined in COURSE_LIST) in a given an integer term (defined as the script property TERM).  It notifies the students of their current score in the these courses over email.  If the student's score is below a threshold (defined as the script property THRESHOLD), the student's name, email, score, and course are written to a spreadsheet (defined in DANGER_SHEET).  EMAIL_STORAGE is used to store emails for future sending if the script executing user is over the daily email quota.
+This script uses the Canvas API to extract the current scores from a list of courses (defined in COURSE_LIST).  It notifies the students of their current score in the these courses over email.  If the student's score is below a threshold (defined as the script property THRESHOLD), the student's name, email, score, and course are written to a spreadsheet (defined in DANGER_SHEET).  EMAIL_STORAGE is used to store emails for future sending if the script executing user is over the daily email quota.
 
 The script must have the following script properties defined (set under File->Project Properties->Script Properties within the Apps Scripts editor): 
 
@@ -21,8 +21,6 @@ The script must have the following script properties defined (set under File->Pr
 | MESSAGE_HEADER  | This message is to inform you of your standing in select CBA classes.  As of right now, your score in         |
 +-----------------+---------------------------------------------------------------------------------------------------------------+
 | MESSAGE_FOOTER  | This score is based on the current data in Canvas.  Please contact your instructor if you have any questions. |
-+-----------------+---------------------------------------------------------------------------------------------------------------+
-| TERM            | 1                                                                                                             |
 +-----------------+---------------------------------------------------------------------------------------------------------------+
 | COURSE_LIST     | https://docs.google.com/spreadsheets/d/1r1byAiO_6KhUSyJcVXAvTqOP0Uqw9eyQi-AIIDU7WBY/edit#gid=0                |
 +-----------------+---------------------------------------------------------------------------------------------------------------+
@@ -44,7 +42,6 @@ extractDataFromCanvas.dangerSpreadsheet = "";
 extractDataFromCanvas.courseList = "";
 extractDataFromCanvas.domain = "";
 extractDataFromCanvas.threshold = 100.0;
-extractDataFromCanvas.term = 1;
 
 
 extractDataFromCanvas.loadSettings = function () {
@@ -62,10 +59,6 @@ extractDataFromCanvas.loadSettings = function () {
     if (isNaN(extractDataFromCanvas.threshold)) {
         extractDataFromCanvas.threshold = 100.0;
     }
-    extractDataFromCanvas.term = parseInt(scriptProperties.getProperty('TERM'));
-    if (isNaN(extractDataFromCanvas.term)) {
-        extractDataFromCanvas.term = 1;
-    }
 };
 
 
@@ -77,9 +70,8 @@ extractDataFromCanvas.getCourses = function () {
 extractDataFromCanvas.findCourses = function (data) {
     var courseURLS = [];
     for (var i = 0; i < data.length; i++) {
-        if (data[i].course_code && data[i].enrollment_term_id) {
+        if (data[i].course_code) {
             var course = data[i].course_code.toString().substr(0, 8);
-            var termid = data[i].enrollment_term_id;
             if (loadCourseList.couseList.indexOf(course) > -1) {
                 courseURLS.push({
                     course: course,
