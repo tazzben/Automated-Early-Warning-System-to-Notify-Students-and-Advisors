@@ -28,6 +28,11 @@ The script must have the following script properties defined (set under File->Pr
 +-----------------+---------------------------------------------------------------------------------------------------------------+
 | EMAIL_STORAGE   | https://docs.google.com/spreadsheets/d/13tdBNFECF-6nMxAMhCFwbg2m1PB1iicYNpxRopJskZM/edit#gid=0                |
 +-----------------+---------------------------------------------------------------------------------------------------------------+
+| FROM_NAME       | CBA Grade Info                                                                                                |
++-----------------+---------------------------------------------------------------------------------------------------------------+
+| REPLY_TO        | unocbaadvising@unomaha.edu                                                                                    |
++-----------------+---------------------------------------------------------------------------------------------------------------+
+
 The function main could be setup as a time driven trigger inside of the G Suite Developer Hub (the script must be run manually by the user once to authorize the OAuth scopes).  As a result this information can be sent on a period schedule (e.g. monthly).
 
 For help, please contact Ben Smith <bosmith@unomaha.edu>.
@@ -54,6 +59,8 @@ extractDataFromCanvas.loadSettings = function () {
     createContent.message = scriptProperties.getProperty('MESSAGE_HEADER');
     createContent.footer = scriptProperties.getProperty('MESSAGE_FOOTER');
     createContent.subject = scriptProperties.getProperty('MESSAGE_SUBJECT');
+    createContent.from = scriptProperties.getProperty('FROM_NAME');
+    createContent.replyTo = scriptProperties.getProperty('REPLY_TO');
     newEmailClass.sheetStorageURL = scriptProperties.getProperty('EMAIL_STORAGE');
     extractDataFromCanvas.threshold = parseFloat(scriptProperties.getProperty('THRESHOLD'));
     if (isNaN(extractDataFromCanvas.threshold)) {
@@ -182,6 +189,8 @@ var createContent = {};
 createContent.message = "";
 createContent.footer = "";
 createContent.subject = "";
+createContent.from = "";
+createContent.replyTo = "";
 
 createContent.createMessages = function (data) {
     var sheet = updateSpreadsheetReport.createSpreadsheet();
@@ -245,8 +254,15 @@ newEmailClass.sendEmail = function (subjectLine, email, emailContent) {
     }
     if (emailContent.length > 0 && validateEmail.validate(email)) {
         subjectLine = subjectLine || "(No subject)";
+        var options = {};
+        if (createContent.from.length > 0){
+            options.name = createContent.from;
+        }
+        if (createContent.replyTo.length > 0){
+            options.replyTo = createContent.replyTo;
+        }
         //Disable while testing
-        MailApp.sendEmail(email, subjectLine, emailContent);
+        MailApp.sendEmail(email, subjectLine, emailContent, options);
     }
 };
 
