@@ -28,6 +28,8 @@ The script must have the following script properties defined (set under File->Pr
 +-----------------+---------------------------------------------------------------------------------------------------------------+
 | EMAIL_STORAGE   | https://docs.google.com/spreadsheets/d/13tdBNFECF-6nMxAMhCFwbg2m1PB1iicYNpxRopJskZM/edit#gid=0                |
 +-----------------+---------------------------------------------------------------------------------------------------------------+
+| TERM            | 1  or 0 if disabled                                                                                           |
++-----------------+---------------------------------------------------------------------------------------------------------------+
 | FROM_NAME       | CBA Grade Info                                                                                                |
 +-----------------+---------------------------------------------------------------------------------------------------------------+
 | REPLY_TO        | unocbaadvising@unomaha.edu                                                                                    |
@@ -47,6 +49,7 @@ extractDataFromCanvas.dangerSpreadsheet = "";
 extractDataFromCanvas.courseList = "";
 extractDataFromCanvas.domain = "";
 extractDataFromCanvas.threshold = 100.0;
+extractDataFromCanvas.term = 0;
 
 
 extractDataFromCanvas.loadSettings = function () {
@@ -66,6 +69,10 @@ extractDataFromCanvas.loadSettings = function () {
     if (isNaN(extractDataFromCanvas.threshold)) {
         extractDataFromCanvas.threshold = 100.0;
     }
+    extractDataFromCanvas.term = parseInt(scriptProperties.getProperty('TERM'));
+    if (isNaN(extractDataFromCanvas.term)) {
+        extractDataFromCanvas.term = 0;
+    }
 };
 
 
@@ -80,10 +87,19 @@ extractDataFromCanvas.findCourses = function (data) {
         if (data[i].course_code) {
             var course = data[i].course_code.toString().substr(0, 8);
             if (loadCourseList.courseList.indexOf(course) > -1) {
-                courseURLS.push({
-                    course: course,
-                    id: data[i].id
-                });
+                if (extractDataFromCanvas.term > 0 && data[i].enrollment_term_id) {
+                    if (data[i].enrollment_term_id == extractDataFromCanvas.term) {
+                        courseURLS.push({
+                            course: course,
+                            id: data[i].id
+                        });
+                    }
+                } else if (extractDataFromCanvas.term === 0) {
+                    courseURLS.push({
+                        course: course,
+                        id: data[i].id
+                    });
+                }
             }
         }
     }
