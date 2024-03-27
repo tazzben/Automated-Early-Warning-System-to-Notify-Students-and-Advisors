@@ -59,8 +59,8 @@ extractDataFromCanvas.loadSettings = function () {
     createContent.message = scriptProperties.getProperty('MESSAGE_HEADER');
     createContent.footer = scriptProperties.getProperty('MESSAGE_FOOTER');
     createContent.subject = scriptProperties.getProperty('MESSAGE_SUBJECT');
-    createContent.from = scriptProperties.getProperty('FROM_NAME');
-    createContent.replyTo = scriptProperties.getProperty('REPLY_TO');
+    createContent.from = scriptProperties.getProperty('FROM_NAME').toString().trim();
+    createContent.replyTo = scriptProperties.getProperty('REPLY_TO').toString().trim();
     newEmailClass.sheetStorageURL = scriptProperties.getProperty('EMAIL_STORAGE');
     extractDataFromCanvas.threshold = parseFloat(scriptProperties.getProperty('THRESHOLD'));
     if (isNaN(extractDataFromCanvas.threshold)) {
@@ -79,7 +79,7 @@ extractDataFromCanvas.findCourses = function (data) {
     for (var i = 0; i < data.length; i++) {
         if (data[i].course_code) {
             var course = data[i].course_code.toString().substr(0, 8);
-            if (loadCourseList.couseList.indexOf(course) > -1) {
+            if (loadCourseList.courseList.indexOf(course) > -1) {
                 courseURLS.push({
                     course: course,
                     id: data[i].id
@@ -129,8 +129,8 @@ extractDataFromCanvas.loopCourses = function (courses) {
 };
 
 var loadCourseList = {};
-loadCourseList.couseList = [];
-loadCourseList.couseDes = [];
+loadCourseList.courseList = [];
+loadCourseList.courseDes = [];
 
 loadCourseList.LoadCourseFile = function () {
     var ss = SpreadsheetApp.openByUrl(extractDataFromCanvas.courseList);
@@ -141,14 +141,14 @@ loadCourseList.LoadCourseFile = function () {
             var data = firstSheet.getDataRange().getValues();
             for (var i = 0; i < data.length; i++) {
                 if (data[i][0].toString().trim().length > 0) {
-                    loadCourseList.couseList.push(data[i][0].toString().trim());
+                    loadCourseList.courseList.push(data[i][0].toString().trim());
                     var courseMes = "";
                     if (data[i].length > 1){
                         if (data[i][1].toString().trim().length > 0) {
                             courseMes = data[i][1].toString().trim();
                         }
                     }
-                    loadCourseList.couseDes.push(courseMes);
+                    loadCourseList.courseDes.push(courseMes);
                 }
             }
         }
@@ -219,9 +219,9 @@ createContent.createMessages = function (data) {
                     var cgrade = "";
                 }
                 var message = name + ",\r\n\r\n" + createContent.message + " " + course + " is " + score + ". " + cgrademes + createContent.footer;
-                if (loadCourseList.couseList.indexOf(course) > -1){
-                    var mesPos = loadCourseList.couseList.indexOf(course);
-                    var message = message + "\r\n\r\n" + loadCourseList.couseDes[mesPos];
+                if (loadCourseList.courseList.indexOf(course) > -1){
+                    var mesPos = loadCourseList.courseList.indexOf(course);
+                    var message = message + "\r\n\r\n" + loadCourseList.courseDes[mesPos];
                 }
                 if (score <= extractDataFromCanvas.threshold) {
                     var content = [formattedDate, name, data[i].sis_course_id.toString(), email, score, cgrade];
@@ -254,7 +254,8 @@ newEmailClass.sendEmail = function (subjectLine, email, emailContent) {
     }
     if (emailContent.length > 0 && validateEmail.validate(email)) {
         subjectLine = subjectLine || "(No subject)";
-        var options = {};
+        let options = {};
+        options.name = "Course Grade Info";
         if (createContent.from.length > 0){
             options.name = createContent.from;
         }
@@ -344,8 +345,8 @@ function main() {
     loadCourseList.LoadCourseFile();
     var courseList = extractDataFromCanvas.getCourses();
     var coursestoRun = extractDataFromCanvas.findCourses(courseList);
-    var enrollements = extractDataFromCanvas.loopCourses(coursestoRun);
-    createContent.createMessages(enrollements);
+    var enrollments = extractDataFromCanvas.loopCourses(coursestoRun);
+    createContent.createMessages(enrollments);
 }
 
 function cleanOutEmailList() {
