@@ -62,8 +62,11 @@ extractDataFromCanvas.loadSettings = function () {
     createContent.message = scriptProperties.getProperty('MESSAGE_HEADER');
     createContent.footer = scriptProperties.getProperty('MESSAGE_FOOTER');
     createContent.subject = scriptProperties.getProperty('MESSAGE_SUBJECT');
-    createContent.from = scriptProperties.getProperty('FROM_NAME').toString().trim();
-    createContent.replyTo = scriptProperties.getProperty('REPLY_TO').toString().trim();
+    createContent.fromName = scriptProperties.getProperty('FROM_NAME').toString().trim();
+    let tempReplyTo = scriptProperties.getProperty('REPLY_TO').toString().trim();
+    if (tempReplyTo.length > 0 && validateEmail.validate(tempReplyTo)){
+        createContent.replyTo = tempReplyTo;
+    }
     newEmailClass.sheetStorageURL = scriptProperties.getProperty('EMAIL_STORAGE');
     extractDataFromCanvas.threshold = parseFloat(scriptProperties.getProperty('THRESHOLD'));
     if (isNaN(extractDataFromCanvas.threshold)) {
@@ -205,7 +208,7 @@ var createContent = {};
 createContent.message = "";
 createContent.footer = "";
 createContent.subject = "";
-createContent.from = "";
+createContent.fromName = "";
 createContent.replyTo = "";
 
 createContent.createMessages = function (data) {
@@ -271,15 +274,18 @@ newEmailClass.sendEmail = function (subjectLine, email, emailContent) {
     if (emailContent.length > 0 && validateEmail.validate(email)) {
         subjectLine = subjectLine || "(No subject)";
         let options = {};
-        options.name = "Course Grade Info";
-        if (createContent.from.length > 0){
-            options.name = createContent.from;
+        if (createContent.fromName.length > 0){
+            options.name = createContent.fromName;
         }
         if (createContent.replyTo.length > 0){
             options.replyTo = createContent.replyTo;
         }
         //Disable while testing
-        MailApp.sendEmail(email, subjectLine, emailContent, options);
+        if (options.name || options.replyTo){
+            MailApp.sendEmail(email, subjectLine, emailContent, options);
+        } else {
+            MailApp.sendEmail(email, subjectLine, emailContent);
+        }
     }
 };
 
