@@ -181,24 +181,39 @@ updateSpreadsheetReport.createSpreadsheet = function () {
     var header = [
         ['Date','Student', 'Course', 'E-Mail', 'Current Score', 'Current Grade']
     ];
-    var ss = SpreadsheetApp.openByUrl(extractDataFromCanvas.dangerSpreadsheet);
-    if (ss !== false) {
-        var sheet = ss.getActiveSheet();
-        sheet.activate();
-        if (sheet.getLastRow() === 0) {
-            sheet.getRange(1, 1, 1, header[0].length).setValues(header);
+    try {
+        var ss = SpreadsheetApp.openByUrl(extractDataFromCanvas.dangerSpreadsheet);
+        if (ss !== false) {
+            var sheet = ss.getActiveSheet();
+            sheet.activate();
+            if (sheet.getLastRow() === 0) {
+                sheet.getRange(1, 1, 1, header[0].length).setValues(header);
+            }
+            return sheet;
         }
-        return sheet;
+        return ss;
+    } catch (e) {
+        Logger.log("ERROR opening DANGER_SHEET: " + e.toString());
+        // Return null to signal unavailable; calling code should check before using
+        return null;
     }
-    return ss;
 };
 
 updateSpreadsheetReport.addContentToSpreadSheet = function (sheet, contentData) {
+    if (sheet === null || sheet === false) {
+        Logger.log("DANGER_SHEET unavailable; skipping danger list logging");
+        return; // Graceful degradation: continue without logging
+    }
     if (contentData.length > 0) {
         if (contentData[0].length > 0) {
-            var setActiveRow = sheet.getLastRow() + 1;
-            var range = sheet.getRange(setActiveRow, 1, contentData.length, contentData[0].length);
-            range.setValues(contentData);
+            try {
+                var setActiveRow = sheet.getLastRow() + 1;
+                var range = sheet.getRange(setActiveRow, 1, contentData.length, contentData[0].length);
+                range.setValues(contentData);
+            } catch (e) {
+                Logger.log("ERROR writing to DANGER_SHEET: " + e.toString());
+                // Continue anyway; email sends are more critical than logging
+            }
         }
     }
 };
@@ -280,42 +295,61 @@ newEmailClass.sendEmail = function (subjectLine, email, emailContent) {
         if (createContent.replyTo.length > 0){
             options.replyTo = createContent.replyTo;
         }
-        //Disable while testing
-        if (options.name || options.replyTo){
-            MailApp.sendEmail(email, subjectLine, emailContent, options);
-        } else {
-            MailApp.sendEmail(email, subjectLine, emailContent);
+        try {
+            if (options.name || options.replyTo){
+                MailApp.sendEmail(email, subjectLine, emailContent, options);
+            } else {
+                MailApp.sendEmail(email, subjectLine, emailContent);
+            }
+        } catch (e) {
+            Logger.log("ERROR sending email to " + email + ": " + e.toString());
+            // Queue failed email to EMAIL_STORAGE for retry instead of failing
+            newEmailClass.writeToSheet(subjectLine, email, emailContent);
         }
     }
 };
 
 newEmailClass.openSheet = function () {
-    var ss = SpreadsheetApp.openByUrl(newEmailClass.sheetStorageURL);
-    if (ss !== false) {
-        var sheets = ss.getSheets();
-        if (sheets.length > 0) {
-            newEmailClass.sheetStorage = sheets[0];
+    try {
+        var ss = SpreadsheetApp.openByUrl(newEmailClass.sheetStorageURL);
+        if (ss !== false) {
+            var sheets = ss.getSheets();
+            if (sheets.length > 0) {
+                newEmailClass.sheetStorage = sheets[0];
+            }
         }
+    } catch (e) {
+        Logger.log("ERROR opening EMAIL_STORAGE sheet: " + e.toString());
+        newEmailClass.sheetStorage = null; // Mark as unavailable
     }
 };
 
 newEmailClass.writeToSheet = function (subjectLine, email, emailContent) {
     if (newEmailClass.sheetStorage === false) {
         newEmailClass.openSheet();
-        newEmailClass.createTrigger();
+        if (newEmailClass.sheetStorage !== false) {
+            newEmailClass.createTrigger();
+        }
     }
-    if (newEmailClass.sheetStorage !== false) {
+    if (newEmailClass.sheetStorage !== false && newEmailClass.sheetStorage !== null) {
         var datatowrite = [subjectLine, email, emailContent];
         newEmailClass.storageRows.push(datatowrite)
+    } else {
+        Logger.log("WARNING: EMAIL_STORAGE sheet unavailable; queued email for " + email + " cannot be stored");
     }
 };
 
 newEmailClass.saveToSheet = function () {
-    if (newEmailClass.sheetStorage !== false && newEmailClass.storageRows.length > 0) {
+    if (newEmailClass.sheetStorage !== false && newEmailClass.sheetStorage !== null && newEmailClass.storageRows.length > 0) {
         if (newEmailClass.storageRows[0].length > 0) {
-            var range = newEmailClass.sheetStorage.getRange((newEmailClass.sheetStorage.getLastRow() + 1), 1, newEmailClass.storageRows.length, newEmailClass.storageRows[0].length);
-            range.setValues(newEmailClass.storageRows);
-            newEmailClass.storageRows = [];
+            try {
+                var range = newEmailClass.sheetStorage.getRange((newEmailClass.sheetStorage.getLastRow() + 1), 1, newEmailClass.storageRows.length, newEmailClass.storageRows[0].length);
+                range.setValues(newEmailClass.storageRows);
+                newEmailClass.storageRows = [];
+            } catch (e) {
+                Logger.log("ERROR saving to EMAIL_STORAGE: " + e.toString());
+                // Don't clear storageRows; try again on next trigger
+            }
         }
     }
 };
