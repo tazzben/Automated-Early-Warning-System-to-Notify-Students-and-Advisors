@@ -265,7 +265,6 @@ createContent.createMessages = function (data) {
 
                 if (newEmailClass.quota > 0) {
                     newEmailClass.sendEmail(emailSubject, email, message);
-                    newEmailClass.quota = newEmailClass.quota - 1;
                 } else {
                     newEmailClass.writeToSheet(emailSubject, email, message);
                 }
@@ -298,8 +297,10 @@ newEmailClass.sendEmail = function (subjectLine, email, emailContent) {
         try {
             if (options.name || options.replyTo){
                 MailApp.sendEmail(email, subjectLine, emailContent, options);
+                newEmailClass.quota = newEmailClass.quota - 1;
             } else {
                 MailApp.sendEmail(email, subjectLine, emailContent);
+                newEmailClass.quota = newEmailClass.quota - 1;
             }
         } catch (e) {
             Logger.log("ERROR sending email to " + email + ": " + e.toString());
@@ -384,7 +385,6 @@ newEmailClass.readSheet = function () {
                 var email = data[i][1].toString();
                 var body = data[i][2].toString();
                 newEmailClass.sendEmail(subject, email, body);
-                newEmailClass.quota = newEmailClass.quota - 1;
             }
         }
         if (numberofrows > 0) {
