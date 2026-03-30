@@ -388,7 +388,13 @@ newEmailClass.readSheet = function () {
             }
         }
         if (numberofrows > 0) {
-            newEmailClass.sheetStorage.deleteRows(1, numberofrows);
+            var numberofrowsInSheet = newEmailClass.sheetStorage.getLastRow();
+            if (numberofrows >= numberofrowsInSheet){
+              newEmailClass.sheetStorage.deleteRows(1, numberofrowsInSheet - 1);
+              newEmailClass.sheetStorage.clear();
+            } else {
+              newEmailClass.sheetStorage.deleteRows(1, numberofrows);
+            }
         }
     }
     if (createNewTrigger) {
